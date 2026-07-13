@@ -161,7 +161,7 @@ Il flusso e basato sul pattern **publish/subscribe** di ROS2 e coinvolge 3 nodi:
 - Si sottoscrive a `/robot_description` per conoscere la geometria (forme, dimensioni, colori)
 - Con TF + URDF, sa esattamente dove e come disegnare ogni pezzo del robot in 3D
 
-### Perche `robot_state_publisher` e indispensabile?
+### Perche `robot_state_publisher` è indispensabile?
 
 Senza `robot_state_publisher`, `state_publisher` pubblicherebbe angoli "nel vuoto":
 nessuno li ascolterebbe e RViz non saprebbe come tradurre un angolo in una posizione 3D.
