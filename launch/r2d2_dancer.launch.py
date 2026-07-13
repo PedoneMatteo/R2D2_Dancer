@@ -1,33 +1,33 @@
 """
-r2d2_dancer.launch.py - Avvia tutto l'ecosistema per R2D2 danzante
+r2d2_dancer.launch.py - Starts the entire ecosystem for dancing R2D2
 =================================================================
 
-Questo launch file avvia TRE cose contemporaneamente:
+This launch file starts THREE things simultaneously:
 
-1. state_publisher (il nostro nodo Python)
-   → pubblica /joint_states con gli angoli animati
+1. state_publisher (our Python node)
+   → publishes /joint_states with animated angles
 
-2. robot_state_publisher (nodo standard ROS2)
-   → legge il file URDF e lo pubblica su /robot_description
-   → riceve /joint_states
-   → calcola e pubblica la struttura TF su /tf
+2. robot_state_publisher (standard ROS2 node)
+   → reads the URDF file and publishes it on /robot_description
+   → receives /joint_states
+   → computes and publishes the TF tree on /tf
 
-3. rviz2 (visualizzatore 3D)
-   → si connette a /tf e /robot_description
-   → disegna R2D2 in 3D e lo vedi ballare!
+3. rviz2 (3D visualizer)
+   → connects to /tf and /robot_description
+   → draws R2D2 in 3D and you see it dance!
 
-COME USARLO:
+HOW TO USE:
   ros2 launch r2d2_dancer r2d2_dancer.launch.py
 
-In RViz, se non vedi R2D2:
-- Aggiungi un display "RobotModel" dal pannello "Add" (in basso a sinistra)
-- Assicurati che "Fixed Frame" (pannello "Global Options") sia "base_link"
-- Aggiungi un display "TF" per vedere i sistemi di riferimento (assi colorati)
+In RViz, if you don't see R2D2:
+- Add a "RobotModel" display from the "Add" panel (bottom left)
+- Make sure "Fixed Frame" ("Global Options" panel) is "base_link"
+- Add a "TF" display to see the reference frames (colored axes)
 
-MODIFICHE:
-- Per usare un URDF diverso, cambia il percorso in os.path.join()
-- Per non aprire RViz automaticamente, commenta o rimuovi il Node rviz2
-- Per aggiungere altri nodi, aggiungi altri Node(...) alla LaunchDescription
+CHANGES:
+- To use a different URDF, change the path in os.path.join()
+- To not open RViz automatically, comment or remove the rviz2 Node
+- To add more nodes, add more Node(...) to the LaunchDescription
 """
 
 import os
@@ -41,53 +41,53 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     """
-    Questa funzione viene chiamata da ros2 launch.
-    Restituisce una LaunchDescription: la lista di processi da avviare.
+    This function is called by ros2 launch.
+    Returns a LaunchDescription: the list of processes to start.
     """
 
-    # ─── Percorso del file URDF ────────────────────────────────
-    # Trova automaticamente la directory del pacchetto
+    # ─── Path to the URDF file ────────────────────────────────
+    # Automatically finds the package directory
     pkg_dir = get_package_share_directory('r2d2_dancer')
     urdf_path = os.path.join(pkg_dir, 'urdf', 'r2d2.urdf')
 
-    # Legge il contenuto del file URDF come stringa.
-    # robot_state_publisher se lo aspetta così (non come path!).
+    # Reads the URDF file content as a string.
+    # robot_state_publisher expects it this way (not as a path!).
     with open(urdf_path, 'r') as f:
         robot_description = f.read()
 
-    # ─── 1. Nodo state_publisher (il nostro!) ──────────────────
+    # ─── 1. state_publisher node (ours!) ──────────────────
     state_pub = Node(
         package='r2d2_dancer',
-        executable='state_publisher',  # definito in setup.py
+        executable='state_publisher',  # defined in setup.py
         name='state_publisher',
-        output='screen',  # stampa i log nel terminale
+        output='screen',  # prints logs to the terminal
     )
 
-    # ─── 2. Nodo robot_state_publisher (di sistema) ────────────
-    # Questo nodo è parte del pacchetto "robot_state_publisher".
-    # Legge l'URDF + i JointState → produce la TF tree.
+    # ─── 2. robot_state_publisher node (system) ────────────
+    # This node is part of the "robot_state_publisher" package.
+    # Reads the URDF + JointState → produces the TF tree.
     robot_state_pub = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
         name='robot_state_publisher',
         output='screen',
         parameters=[{
-            # Passa l'URDF come parametro.
-            # Il nome del parametro DEVE essere 'robot_description'.
+            # Passes the URDF as a parameter.
+            # The parameter name MUST be 'robot_description'.
             'robot_description': robot_description,
         }],
     )
 
-    # ─── 3. RViz (visualizzatore 3D) ───────────────────────────
-    # Avvia rviz2 con il file di configurazione pre-impostato.
-    # RobotModel, TF e Fixed Frame sono già configurati.
+    # ─── 3. RViz (3D visualizer) ───────────────────────────
+    # Starts rviz2 with the pre-set configuration file.
+    # RobotModel, TF and Fixed Frame are already configured.
     rviz_config = os.path.join(pkg_dir, 'rviz', 'r2d2.rviz')
     rviz = ExecuteProcess(
         cmd=['rviz2', '-d', rviz_config],
         output='screen',
     )
 
-    # ─── Assembla e restituisci ─────────────────────────────────
+    # ─── Assemble and return ─────────────────────────────────
     return LaunchDescription([
         state_pub,
         robot_state_pub,

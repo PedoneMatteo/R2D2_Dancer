@@ -1,44 +1,44 @@
 """
-base_mover.py - Fa "camminare" R2D2 nello spazio
+base_mover.py - Makes R2D2 "walk" in space
 ==================================================
 
-Questo nodo pubblica una TF animata da 'world' a 'base_link'.
-Prima, base_link era la radice dell'albero TF e stava fermo al centro.
-Ora introduciamo un frame 'world' sopra, che fa da "mondo fisso".
+This node publishes an animated TF from 'world' to 'base_link'.
+Before, base_link was the root of the TF tree and stood still at the center.
+Now we introduce a 'world' frame above, which acts as a "fixed world".
 
-L'effetto e che R2D2 si sposta nello spazio mentre continua a ballare:
-le gambe oscillano, e il corpo segue un percorso (cerchio, dritto, etc).
+The effect is that R2D2 moves through space while continuing to dance:
+the legs swing, and the body follows a path (circle, straight, etc).
 
-COME FUNZIONA:
+HOW IT WORKS:
 ==============
 
     world ──(TF: x=cos, y=sin, yaw=rot)──► base_link
                                                 │
-                                          tutto R2D2
-                                          (gambe, testa, braccia...)
+                                          all of R2D2
+                                          (legs, head, arms...)
 
    base_mover           robot_state_publisher          RViz
-   (questo nodo)        (TF da URDF + JointState)      (Fixed Frame: world)
+   (this node)          (TF from URDF + JointState)    (Fixed Frame: world)
        │                         │                         │
        │  /tf: world→base_link   │  /tf: base_link→body   │
        │                         │        body→head       │
        │ ──────────────────────► │        body→legs...    │
-       │                         │ ────────────────────►  │  Vedi R2D2
-       │                         │                        │  muoversi!
+       │                         │ ────────────────────►  │  You see R2D2
+       │                         │                        │  moving!
 
-NOTA IMPORTANTE:
-- robot_state_publisher pubblica TUTTE le TF (body, head, gambe...)
-  incluso world→base_link? NO. Lui pubblica solo le TF tra i link
-  definiti nell'URDF. La TF world→base_link deve venire da NOI.
-- Per questo abbiamo bisogno di questo nodo separato.
-- I frame senza parent diventano "orfani": robot_state_publisher
-  non sa dove attaccare base_link, quindi non pubblica quella TF.
-  base_mover fornisce il "gancio" mancante.
+IMPORTANT NOTE:
+- robot_state_publisher publishes ALL TFs (body, head, legs...)
+  including world→base_link? NO. It only publishes TFs between links
+  defined in the URDF. The world→base_link TF must come from US.
+- That's why we need this separate node.
+- Frames without a parent become "orphans": robot_state_publisher
+  does not know where to attach base_link, so it does not publish that TF.
+  base_mover provides the missing "hook".
 
-MODIFICHE CREATIVE:
-- Cambia il pattern di movimento: linea retta, spirale, zig-zag...
-- Sincronizza la velocita con la frequenza delle gambe
-- Usa /cmd_vel per controllare il movimento da tastiera/joystick
+CREATIVE MODIFICATIONS:
+- Change the movement pattern: straight line, spiral, zig-zag...
+- Sync the speed with the frequency of the legs
+- Use /cmd_vel to control the movement via keyboard/joystick
 """
 
 from math import pi, sin, cos
@@ -51,92 +51,92 @@ from tf2_ros import TransformBroadcaster
 
 class BaseMover(Node):
     """
-    Nodo che pubblica la TF animata world → base_link.
+    Node that publishes the animated TF world → base_link.
 
-    Fa muovere R2D2 lungo un percorso circolare mentre
-    lo orienta nella direzione del moto (tangente al cerchio).
+    Makes R2D2 move along a circular path while
+    orienting it in the direction of motion (tangent to the circle).
     """
 
     def __init__(self):
         super().__init__('base_mover')
 
         # ─── TF Broadcaster ────────────────────────────────────
-        # TransformBroadcaster e il modo standard per pubblicare
-        # trasformate TF in ROS2. Internamente pubblica sul topic /tf.
+        # TransformBroadcaster is the standard way to publish
+        # TF transforms in ROS2. Internally it publishes on the /tf topic.
         self.tf_broadcaster = TransformBroadcaster(self)
 
         # ─── Timer ──────────────────────────────────────────────
-        # Stessa frequenza di state_publisher (20 Hz) per
-        # mantenere il movimento fluido e sincronizzato.
+        # Same frequency as state_publisher (20 Hz) to
+        # keep the movement smooth and synchronized.
         self.timer = self.create_timer(0.05, self.timer_callback)
 
-        # ─── Parametri del movimento ─────────────────────────────
-        self.angle = 0.0          # "tempo" dell'animazione (rad)
-        self.radius = 1.5         # raggio del cerchio (metri)
+        # ─── Movement parameters ───────────────────────────────
+        self.angle = 0.0          # animation "time" (rad)
+        self.radius = 1.5         # circle radius (meters)
 
         self.get_logger().info(
-            'BaseMover avviato! R2D2 camminera in cerchio '
-            f'(raggio={self.radius}m).'
+            'BaseMover started! R2D2 will walk in a circle '
+            f'(radius={self.radius}m).'
         )
         self.get_logger().info(
-            'In RViz, imposta Fixed Frame su "world" per vedere '
-            'R2D2 muoversi.'
+            'In RViz, set Fixed Frame to "world" to see '
+            'R2D2 moving.'
         )
 
     def timer_callback(self):
         """
-        Calcola la posizione di base_link nel mondo e pubblica la TF.
-        Chiamata 20 volte al secondo.
+        Computes the position of base_link in the world and publishes the TF.
+        Called 20 times per second.
         """
-        # ─── Posizione sul cerchio ───────────────────────────────
-        # x = radius * cos(angle): proiezione sull'asse X
-        # y = radius * sin(angle): proiezione sull'asse Y
+        # ─── Position on the circle ───────────────────────────────
+        # x = radius * cos(angle): projection on the X axis
+        # y = radius * sin(angle): projection on the Y axis
         x = self.radius * cos(self.angle)
         y = self.radius * sin(self.angle)
 
-        # ─── Orientamento ────────────────────────────────────────
-        # R2D2 deve guardare nella direzione del moto.
-        # Su un cerchio in senso antiorario, la tangente e
-        # perpendicolare al raggio. Per un cerchio:
-        #   posizione = (cos(θ), sin(θ))
-        #   tangente  = (-sin(θ), cos(θ))
-        # L'angolo della tangente (rispetto a +X) e:
+        # ─── Orientation ────────────────────────────────────────
+        # R2D2 must face the direction of motion.
+        # On a counterclockwise circle, the tangent is
+        # perpendicular to the radius. For a circle:
+        #   position = (cos(θ), sin(θ))
+        #   tangent  = (-sin(θ), cos(θ))
+        # The angle of the tangent (relative to +X) is:
         #   yaw = θ + π/2
-        # Perche? Perche a θ=0 (punto (r,0)), la tangente punta
-        # verso +Y (su), che e 90° (π/2).
+        # Why? Because at θ=0 (point (r,0)), the tangent points
+        # towards +Y (up), which is 90° (π/2).
         yaw = self.angle + pi / 2
 
-        # ─── Costruisci il messaggio TransformStamped ────────────
+        # ─── Build the TransformStamped message ────────────
         t = TransformStamped()
         t.header.stamp = self.get_clock().now().to_msg()
-        t.header.frame_id = 'world'       # frame padre (fisso)
-        t.child_frame_id = 'base_link'    # frame figlio (si muove)
+        t.header.frame_id = 'world'       # parent frame (fixed)
+        t.child_frame_id = 'base_link'    # child frame (moving)
 
-        # Traslazione: dove sta base_link nel mondo
+        # Translation: where base_link is in the world
         t.transform.translation.x = x
         t.transform.translation.y = y
-        t.transform.translation.z = 0.0  # sul pavimento
+        t.transform.translation.z = 0.0  # on the floor
 
-        # Rotazione: yaw attorno a Z (il robot guarda in avanti)
-        # Usiamo un quaternione. tf2 fornisce helper, ma qui
-        # calcoliamo a mano dal yaw.
+        # Rotation: yaw around Z (the robot faces forward)
+        # We use a quaternion. tf2 provides helpers, but here
+        # we compute it manually from the yaw.
         # q = (qx, qy, qz, qw) = (0, 0, sin(yaw/2), cos(yaw/2))
         t.transform.rotation.x = 0.0
         t.transform.rotation.y = 0.0
         t.transform.rotation.z = sin(yaw / 2.0)
         t.transform.rotation.w = cos(yaw / 2.0)
 
-        # ─── Pubblica ────────────────────────────────────────────
+        # ─── Publish ────────────────────────────────────────────
         self.tf_broadcaster.sendTransform(t)
 
-        # ─── Avanza l'animazione ─────────────────────────────────
-        # Incremento piu lento delle gambe per un movimento
-        # di camminata credibile (velocita lineare ≈ 0.075 m/s
-        # alla periferia del cerchio di raggio 1.5m).
+        # ─── Advance the animation ─────────────────────────────────
+        # Slower increment than the legs for a
+        # believable walking movement (linear speed ≈ 0.075 m/s
+        # at the periphery of a 1.5m radius circle).
         self.angle += 0.05
 
-        # Tieni l'angolo in [0, 2π) per evitare overflow
-        # (anche se float non overflowano facilmente)
+        # Keep the angle in [0, 2π) to avoid overflow
+        # (though floats don't overflow easily)
         if self.angle > 2 * pi:
             self.angle -= 2 * pi
 

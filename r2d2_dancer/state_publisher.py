@@ -1,16 +1,16 @@
 """
-state_publisher.py - Il "coreografo" di R2D2
+state_publisher.py - R2D2's "choreographer"
 =============================================
 
-Questo nodo pubblica periodicamente lo stato dei giunti (joint states)
-del robot R2D2. I valori dei giunti sono calcolati con funzioni
-trigonometriche (sin, cos), creando movimenti oscillatori fluidi.
+This node periodically publishes the joint states
+of the R2D2 robot. Joint values are calculated with
+trigonometric functions (sin, cos), creating smooth oscillatory movements.
 
-COME FUNZIONA L'ARCHITETTURA:
+HOW THE ARCHITECTURE WORKS:
 ==============================
 
    state_publisher           robot_state_publisher           RViz
-   (questo nodo)             (pacchetto ROS2 standard)       (visualizzatore)
+   (this node)               (standard ROS2 package)          (visualizer)
        │                           │                            │
        │  Publishes:               │  Subscribes to:            │
        │  /joint_states            │  /joint_states             │
@@ -22,23 +22,23 @@ COME FUNZIONA L'ARCHITETTURA:
        │                           │ ──────────────────────────►│  Renders robot
        │                           │                            │  in 3D
 
-CONCETTI CHIAVE:
-- JointState: messaggio ROS2 standard (sensor_msgs/JointState)
-  Contiene: header (timestamp), name[] (nomi giunti), position[] (angoli)
-- I nomi dei giunti nel JointState DEVONO corrispondere ESATTAMENTE
-  ai nomi dei joint nel file URDF
-- robot_state_publisher è un nodo già pronto di ROS2 che:
-  1. Legge l'URDF (struttura del robot)
-  2. Riceve i JointState (angoli dei giunti)
-  3. Calcola la cinematica diretta (posizione di ogni link)
-  4. Pubblica la struttura TF (transform tree) su /tf
-- RViz legge /tf e /robot_description e disegna il robot in 3D
+KEY CONCEPTS:
+- JointState: standard ROS2 message (sensor_msgs/JointState)
+  Contains: header (timestamp), name[] (joint names), position[] (angles)
+- Joint names in JointState MUST EXACTLY match
+  the joint names in the URDF file
+- robot_state_publisher is a ready-made ROS2 node that:
+  1. Reads the URDF (robot structure)
+  2. Receives JointState (joint angles)
+  3. Computes forward kinematics (position of each link)
+  4. Publishes the TF structure (transform tree) on /tf
+- RViz reads /tf and /robot_description and draws the robot in 3D
 
-MODIFICHE CREATIVE:
-- Cambia le frequenze moltiplicando self.angle per valori diversi
-- Usa funzioni diverse: triangolare a dente di sega, random...
-- Aggiungi più giunti (modifica URDF + aggiungi nomi qui)
-- Sincronizza i movimenti con musica (es. analisi audio)
+CREATIVE MODIFICATIONS:
+- Change frequencies by multiplying self.angle by different values
+- Use different functions: sawtooth wave, random...
+- Add more joints (modify URDF + add names here)
+- Synchronize movements with music (e.g., audio analysis)
 """
 
 import math
@@ -51,103 +51,103 @@ from sensor_msgs.msg import JointState
 
 class StatePublisher(Node):
     """
-    Nodo che anima R2D2 pubblicando JointState a 20 Hz (ogni 0.05 secondi).
+    Node that animates R2D2 by publishing JointState at 20 Hz (every 0.05 seconds).
 
-    Ogni giunto riceve una posizione calcolata con sin/cos, creando
-    oscillazioni fluide. Giunti diversi hanno fasi diverse per
-    creare un effetto di "danza" coordinata.
+    Each joint receives a position calculated with sin/cos, creating
+    smooth oscillations. Different joints have different phases to
+    create a coordinated "dance" effect.
     """
 
     def __init__(self):
-        # Inizializza il nodo con nome 'state_publisher'
+        # Initialize the node with name 'state_publisher'
         super().__init__('state_publisher')
 
         # ─── Publishers ─────────────────────────────────────────
-        # Crea un publisher per il topic /joint_states.
-        # - Tipo messaggio: JointState (da sensor_msgs.msg)
-        # - Queue size: 10 (buffer messaggi in caso di ritardi)
+        # Create a publisher for the /joint_states topic.
+        # - Message type: JointState (from sensor_msgs.msg)
+        # - Queue size: 10 (message buffer in case of delays)
         self.publisher = self.create_publisher(JointState, 'joint_states', 10)
 
         # ─── Timer ──────────────────────────────────────────────
-        # Chiama timer_callback() ogni 0.05 secondi → 20 Hz
-        # 20 Hz è un buon compromesso: fluido per gli occhi,
-        # non troppo pesante per la CPU.
+        # Calls timer_callback() every 0.05 seconds → 20 Hz
+        # 20 Hz is a good compromise: smooth for the eyes,
+        # not too heavy on the CPU.
         self.timer = self.create_timer(0.05, self.timer_callback)
 
-        # ─── Stato interno ──────────────────────────────────────
-        # self.angle è la variabile "tempo" della nostra animazione.
-        # Incrementata ad ogni frame, viene usata come input di sin/cos.
-        # Aumentando l'incremento (0.1 → 0.2) il robot balla più veloce.
+        # ─── Internal state ──────────────────────────────────────
+        # self.angle is the "time" variable of our animation.
+        # Incremented at each frame, it is used as input for sin/cos.
+        # Increasing the increment (0.1 → 0.2) makes the robot dance faster.
         self.angle = 0.0
 
         # ─── Debug ──────────────────────────────────────────────
-        self.get_logger().info('StatePublisher avviato!')
+        self.get_logger().info('StatePublisher started!')
         self.get_logger().info(
-            'I giunti animati sono: ' +
+            'The animated joints are: ' +
             'joint_head, joint_left_leg, joint_right_leg, '
             'joint_left_arm, joint_right_arm'
         )
         self.get_logger().info(
-            'Apri RViz e aggiungi "RobotModel" per vedere R2D2 ballare!'
+            'Open RViz and add "RobotModel" to see R2D2 dance!'
         )
 
     def timer_callback(self):
         """
-        Chiamata 20 volte al secondo dal timer.
-        Calcola le posizioni dei giunti e le pubblica.
+        Called 20 times per second by the timer.
+        Calculates joint positions and publishes them.
 
-        LOGICA DI MOVIMENTO:
-        - sin(angle): oscilla tra -1 e +1, periodo 2π (~63 step a 0.1)
-        - cos(angle): come sin ma sfasato di 90°
-        - Moltiplicando per un'ampiezza (es. 0.6) limitiamo l'escursione
-        - Aggiungendo offset alla fase, ogni giunto balla "a tempo diverso"
+        MOVEMENT LOGIC:
+        - sin(angle): oscillates between -1 and +1, period 2π (~63 steps at 0.1)
+        - cos(angle): like sin but shifted by 90°
+        - Multiplying by an amplitude (e.g., 0.6) limits the excursion
+        - Adding an offset to the phase, each joint dances "at a different time"
         """
-        # Crea un nuovo messaggio JointState
+        # Create a new JointState message
         joint_state = JointState()
 
         # ─── Header ────────────────────────────────────────────
-        # Ogni messaggio ROS ha un header con timestamp.
-        # Il timestamp dice "questo è lo stato del robot in questo istante".
+        # Every ROS message has a header with a timestamp.
+        # The timestamp says "this is the robot's state at this instant".
         joint_state.header.stamp = self.get_clock().now().to_msg()
 
-        # ─── Nomi dei giunti ────────────────────────────────────
-        # DEVONO corrispondere ESATTAMENTE ai nomi nel file URDF!
-        # Se qui scrivi "testa" ma nell'URDF c'è "joint_head",
-        # robot_state_publisher non troverà il match e il giunto
-        # resterà fermo nella posizione di default.
+        # ─── Joint names ────────────────────────────────────
+        # MUST EXACTLY match the names in the URDF file!
+        # If you write "testa" here but the URDF has "joint_head",
+        # robot_state_publisher will not find the match and the joint
+        # will stay in its default position.
         joint_state.name = [
-            'joint_head',       # Rotazione testa (asse Z, yaw)
-            'joint_left_leg',   # Oscillazione gamba sinistra (asse Y)
-            'joint_right_leg',  # Oscillazione gamba destra (asse Y)
-            'joint_left_arm',   # Oscillazione braccio sinistro (asse X)
-            'joint_right_arm',  # Oscillazione braccio destro (asse X)
+            'joint_head',       # Head rotation (Z axis, yaw)
+            'joint_left_leg',   # Left leg oscillation (Y axis)
+            'joint_right_leg',  # Right leg oscillation (Y axis)
+            'joint_left_arm',   # Left arm oscillation (X axis)
+            'joint_right_arm',  # Right arm oscillation (X axis)
         ]
 
-        # ─── Posizioni dei giunti ──────────────────────────────
-        # Ogni posizione è un angolo in RADIANTI.
+        # ─── Joint positions ──────────────────────────────
+        # Each position is an angle in RADIANS.
         #
-        # LA TESTA: gira a sinistra e destra lentamente
-        #   sin(angle * 0.7): frequenza ridotta (fattore 0.7)
-        #   * 0.8: ampiezza max ±0.8 rad (±46°)
+        # THE HEAD: turns left and right slowly
+        #   sin(angle * 0.7): reduced frequency (factor 0.7)
+        #   * 0.8: max amplitude ±0.8 rad (±46°)
         head_pos = sin(self.angle * 0.7) * 0.8
 
-        # GAMBA SINISTRA: oscilla avanti/indietro
-        #   sin(self.angle): oscillazione base
-        #   * 0.6: ampiezza ridotta per un movimento credibile
+        # LEFT LEG: swings forward/backward
+        #   sin(self.angle): base oscillation
+        #   * 0.6: reduced amplitude for a believable movement
         left_leg_pos = sin(self.angle) * 0.6
 
-        # GAMBA DESTRA: oscilla in CONTROFASE rispetto alla sinistra
-        #   -sin(self.angle): segno opposto → quando una va avanti,
-        #   l'altra va indietro (come quando si balla!)
-        #   Questo è il trucco per l'effetto "danza"!
+        # RIGHT LEG: swings in OPPOSITE PHASE to the left one
+        #   -sin(self.angle): opposite sign → when one goes forward,
+        #   the other goes backward (like when dancing!)
+        #   This is the trick for the "dance" effect!
         right_leg_pos = -sin(self.angle) * 0.6
 
-        # BRACCIO SINISTRO: movimento più veloce e asimmetrico
-        #   sin(angle * 1.3): frequenza 1.3x → si muove più veloce
+        # LEFT ARM: faster and asymmetric movement
+        #   sin(angle * 1.3): 1.3x frequency → moves faster
         left_arm_pos = sin(self.angle * 1.3) * 0.5
 
-        # BRACCIO DESTRO: in controfase, frequenza diversa
-        #   cos è sfasato di 90° rispetto a sin
+        # RIGHT ARM: in opposite phase, different frequency
+        #   cos is shifted by 90° relative to sin
         right_arm_pos = cos(self.angle * 1.3) * 0.5
 
         joint_state.position = [
@@ -158,30 +158,30 @@ class StatePublisher(Node):
             right_arm_pos,
         ]
 
-        # ─── Pubblica ──────────────────────────────────────────
+        # ─── Publish ──────────────────────────────────────────
         self.publisher.publish(joint_state)
 
-        # ─── Incrementa il "tempo" dell'animazione ──────────────
-        # 0.1 radianti per frame @ 20 Hz = 2 rad/s ≈ 115°/s
-        # Per ballare più veloce: aumenta (es. 0.15, 0.2)
-        # Per ballare più lento: diminuisci (es. 0.05, 0.03)
-        # Puoi anche usare un incremento variabile!
+        # ─── Increment the animation "time" ──────────────
+        # 0.1 radians per frame @ 20 Hz = 2 rad/s ≈ 115°/s
+        # To dance faster: increase (e.g., 0.15, 0.2)
+        # To dance slower: decrease (e.g., 0.05, 0.03)
+        # You can also use a variable increment!
         self.angle += 0.1
 
-        # L'angolo cresce all'infinito, ma sin/cos sono periodici
-        # (periodo 2π), quindi non c'è problema di overflow per
-        # sessioni ragionevoli. Volendo, puoi tenerlo limitato:
+        # The angle grows indefinitely, but sin/cos are periodic
+        # (period 2π), so there's no overflow problem for
+        # reasonable sessions. If you want, you can keep it bounded:
         #   if self.angle > 2 * pi: self.angle -= 2 * pi
 
 
 def main(args=None):
     """
-    Entry point del nodo. Avvia il loop ROS2.
-    Tutti i nodi Python seguono questo pattern:
-    1. rclpy.init()   → inizializza il middleware ROS2
-    2. Costruisci il nodo
-    3. rclpy.spin()   → loop infinito che processa callback e timer
-    4. rclpy.shutdown() → pulizia all'uscita
+    Node entry point. Starts the ROS2 loop.
+    All Python nodes follow this pattern:
+    1. rclpy.init()   → initializes the ROS2 middleware
+    2. Build the node
+    3. rclpy.spin()   → infinite loop that processes callbacks and timers
+    4. rclpy.shutdown() → cleanup on exit
     """
     rclpy.init(args=args)
     node = StatePublisher()

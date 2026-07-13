@@ -1,38 +1,38 @@
 <?xml version="1.0"?>
 <!--
-    R2D2 DANZANTE - Modello URDF
-    =============================
-    Questo file descrive la geometria e la struttura del robot R2D2.
+    DANCING R2D2 - URDF Model
+    ==========================
+    This file describes the geometry and structure of the R2D2 robot.
 
-    CONCETTI CHIAVE:
-    - <link>:   una parte rigida del robot (corpo, testa, gamba...).
-                Può avere geometria (visual per RViz, collision per fisica),
-                massa (inertial) e colore (material).
-    - <joint>:  una connessione tra due link. Può essere di vari tipi:
-                * "revolute" = rotazione attorno a un asse (cerniera)
-                * "continuous" = come revolute ma senza limiti di angolo
-                * "fixed" = giunto fisso (nessun movimento)
-                * "prismatic" = traslazione lungo un asse
-                <origin> definisce posizione/orientamento del joint.
-                <axis> definisce l'asse di rotazione/traslazione.
+    KEY CONCEPTS:
+    - <link>:   a rigid part of the robot (body, head, leg...).
+                It can have geometry (visual for RViz, collision for physics),
+                mass (inertial) and color (material).
+    - <joint>:  a connection between two links. It can be of various types:
+                * "revolute" = rotation around an axis (hinge)
+                * "continuous" = like revolute but without angle limits
+                * "fixed" = fixed joint (no movement)
+                * "prismatic" = translation along an axis
+                <origin> defines the position/orientation of the joint.
+                <axis> defines the rotation/translation axis.
 
-    COME USARLO CON RViz:
-    1. Lanciare: ros2 launch r2d2_dancer r2d2_dancer.launch.py
-    2. In RViz, aggiungere "RobotModel" e settare "Description Topic" su /robot_description
-    3. Aggiungere "TF" per vedere i sistemi di riferimento
-    4. Vedrai R2D2 muoversi a ritmo!
+    HOW TO USE WITH RViz:
+    1. Run: ros2 launch r2d2_dancer r2d2_dancer.launch.py
+    2. In RViz, add "RobotModel" and set "Description Topic" to /robot_description
+    3. Add "TF" to see the reference frames
+    4. You will see R2D2 moving to the beat!
 
-    MODIFICA CREATIVA:
-    - Cambia i colori con i valori RGBA (linee 80-90 circa)
-    - Aggiungi nuovi link (es. antenne, luci, braccia estensibili)
-    - Modifica le frequenze di oscillazione in state_publisher.py
-    - Sperimenta con geometrie diverse: box, cylinder, sphere, mesh
+    CREATIVE MODIFICATION:
+    - Change the colors with RGBA values (around lines 80-90)
+    - Add new links (e.g. antennas, lights, extendable arms)
+    - Modify the oscillation frequencies in state_publisher.py
+    - Experiment with different geometries: box, cylinder, sphere, mesh
 -->
 <robot name="r2d2">
 
     <!-- ============================================================
-         MATERIALI (colori dei pezzi)
-         RGBA: (Red, Green, Blue, Alpha) - valori da 0.0 a 1.0
+         MATERIALS (colors of the parts)
+         RGBA: (Red, Green, Blue, Alpha) - values from 0.0 to 1.0
          ============================================================ -->
     <material name="r2d2_white">
         <color rgba="0.95 0.95 0.95 1.0"/>
@@ -49,9 +49,9 @@
 
 
     <!-- ============================================================
-         BASE LINK - è il punto di partenza (root) del robot
-         Tutto il robot è costruito a partire da qui.
-         In RViz, questo link sarà fermo.
+         BASE LINK - is the starting point (root) of the robot
+         The entire robot is built starting from here.
+         In RViz, this link will be stationary.
          ============================================================ -->
     <link name="base_link">
         <visual>
@@ -64,14 +64,14 @@
 
 
     <!-- ============================================================
-         CORPO - Cilindro principale di R2D2
-         Collegato a base_link con un giunto FISSO (non si muove da solo,
-         ma può essere spinto da base_link se questo si muovesse)
+         BODY - Main cylinder of R2D2
+         Connected to base_link with a FIXED joint (does not move on its own,
+         but can be pushed by base_link if it were to move)
          ============================================================ -->
     <link name="body">
         <visual>
             <geometry>
-                <!-- Cilindro: raggio 0.25m, altezza 0.6m -->
+                <!-- Cylinder: radius 0.25m, height 0.6m -->
                 <cylinder radius="0.25" length="0.6"/>
             </geometry>
             <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -79,24 +79,24 @@
         </visual>
     </link>
 
-    <!-- Joint tra base_link e body -->
+    <!-- Joint between base_link and body -->
     <joint name="base_to_body" type="fixed">
         <parent link="base_link"/>
         <child link="body"/>
-        <!-- Il corpo è spostato in alto di 0.3m (metà altezza) -->
+        <!-- The body is shifted upward by 0.3m (half height) -->
         <origin xyz="0 0 0.3" rpy="0 0 0"/>
     </joint>
 
 
     <!-- ============================================================
-         TESTA - Mezza sfera (cupola) sulla cima del corpo
-         Il joint è di tipo REVOLUTE: gira attorno all'asse Z
-         La testa ruoterà a sinistra/destra con un'oscillazione
+         HEAD - Half sphere (dome) on top of the body
+         The joint is of type REVOLUTE: it rotates around the Z axis
+         The head will rotate left/right with an oscillation
          ============================================================ -->
     <link name="head">
         <visual>
             <geometry>
-                <!-- Sfera schiacciata: sembra una cupola -->
+                <!-- Flattened sphere: looks like a dome -->
                 <sphere radius="0.22"/>
             </geometry>
             <origin xyz="0 0 -0.08" rpy="0 0 0"/>
@@ -104,22 +104,22 @@
         </visual>
     </link>
 
-    <!-- joint_head: permette alla testa di ruotare attorno a Z (yaw) -->
+    <!-- joint_head: allows the head to rotate around Z (yaw) -->
     <joint name="joint_head" type="revolute">
         <parent link="body"/>
         <child link="head"/>
-        <!-- Posizionato in cima al corpo (0.3m = metà altezza corpo) -->
+        <!-- Positioned on top of the body (0.3m = half body height) -->
         <origin xyz="0 0 0.3" rpy="0 0 0"/>
-        <!-- Asse di rotazione: Z (blu in RViz) -->
+        <!-- Rotation axis: Z (blue in RViz) -->
         <axis xyz="0 0 1"/>
-        <!-- Limiti di rotazione: ±45 gradi (in radianti) -->
+        <!-- Rotation limits: ±45 degrees (in radians) -->
         <limit lower="-0.8" upper="0.8" effort="10" velocity="10"/>
     </joint>
 
 
     <!-- ============================================================
-         OCCHIO (sensore/lente) sulla testa
-         Un piccolo cilindro blu che sta sulla parte frontale della cupola
+         EYE (sensor/lens) on the head
+         A small blue cylinder on the front part of the dome
          ============================================================ -->
     <link name="eye">
         <visual>
@@ -133,15 +133,15 @@
     <joint name="head_to_eye" type="fixed">
         <parent link="head"/>
         <child link="eye"/>
-        <!-- Sporgente in avanti (y=0.15) sulla cupola -->
+        <!-- Protruding forward (y=0.15) on the dome -->
         <origin xyz="0.15 0 0.02" rpy="0 0 0"/>
     </joint>
 
 
     <!-- ============================================================
-         GAMBA SINISTRA
-         Un cilindro che oscilla avanti/indietro come se R2D2 ballasse!
-         Il joint ruota attorno all'asse Y (pitch).
+         LEFT LEG
+         A cylinder that oscillates forward/backward as if R2D2 were dancing!
+         The joint rotates around the Y axis (pitch).
          ============================================================ -->
     <link name="left_leg">
         <visual>
@@ -153,18 +153,18 @@
         </visual>
     </link>
 
-    <!-- joint_left_leg: oscillazione avanti/indietro (attorno a Y) -->
+    <!-- joint_left_leg: forward/backward oscillation (around Y) -->
     <joint name="joint_left_leg" type="revolute">
         <parent link="body"/>
         <child link="left_leg"/>
-        <!-- Attaccato al fondo del corpo, spostato a sinistra (y=-0.12) -->
+        <!-- Attached to the bottom of the body, shifted to the left (y=-0.12) -->
         <origin xyz="0 -0.12 -0.3" rpy="0 0 0"/>
-        <!-- Asse Y: rotazione avanti/indietro -->
+        <!-- Y axis: forward/backward rotation -->
         <axis xyz="0 1 0"/>
         <limit lower="-0.8" upper="0.8" effort="10" velocity="10"/>
     </joint>
 
-    <!-- Piede sinistro -->
+    <!-- Left foot -->
     <link name="left_foot">
         <visual>
             <geometry>
@@ -177,15 +177,15 @@
     <joint name="left_leg_to_foot" type="fixed">
         <parent link="left_leg"/>
         <child link="left_foot"/>
-        <!-- All'estremità della gamba (0.175 = metà lunghezza gamba) -->
+        <!-- At the end of the leg (0.175 = half leg length) -->
         <origin xyz="0 0 -0.175" rpy="0 0 0"/>
     </joint>
 
 
     <!-- ============================================================
-         GAMBA DESTRA
-         Stessa struttura della sinistra, ma oscilla in controluce
-         (offset di fase) per creare l'effetto "danza"
+         RIGHT LEG
+         Same structure as the left one, but oscillates in counter-phase
+         (phase offset) to create the "dance" effect
          ============================================================ -->
     <link name="right_leg">
         <visual>
@@ -204,7 +204,7 @@
         <limit lower="-0.8" upper="0.8" effort="10" velocity="10"/>
     </joint>
 
-    <!-- Piede destro -->
+    <!-- Right foot -->
     <link name="right_foot">
         <visual>
             <geometry>
@@ -222,17 +222,17 @@
 
 
     <!-- ============================================================
-         BRACCIO SINISTRO
-         Un braccio laterale che oscilla su/giù.
-         La rotazione rpy="1.5708 0 0" (π/2 attorno a X) fa sì
-         che il box parta orizzontale invece che verticale.
+         LEFT ARM
+         A lateral arm that oscillates up/down.
+         The rotation rpy="1.5708 0 0" (π/2 around X) makes it so
+         that the box starts horizontal instead of vertical.
          ============================================================ -->
     <link name="left_arm">
         <visual>
             <geometry>
                 <box size="0.08 0.08 0.3"/>
             </geometry>
-            <!-- Il box è spostato di 0.15 lungo Z (outward nella nuova orientazione) -->
+            <!-- The box is shifted by 0.15 along Z (outward in the new orientation) -->
             <origin xyz="0 0 0.15" rpy="0 0 0"/>
             <material name="r2d2_silver"/>
         </visual>
@@ -241,20 +241,20 @@
     <joint name="joint_left_arm" type="revolute">
         <parent link="body"/>
         <child link="left_arm"/>
-        <!-- Attaccato al lato sinistro del corpo.
-             rpy="1.5708 0 0" ruota il frame di 90° attorno a X:
-             il braccio si estende orizzontalmente verso sinistra. -->
+        <!-- Attached to the left side of the body.
+             rpy="1.5708 0 0" rotates the frame by 90° around X:
+             the arm extends horizontally to the left. -->
         <origin xyz="0 -0.25 0.05" rpy="1.5708 0 0"/>
-        <!-- Asse X: oscillazione su/giù -->
+        <!-- X axis: up/down oscillation -->
         <axis xyz="1 0 0"/>
         <limit lower="-1.0" upper="1.0" effort="10" velocity="10"/>
     </joint>
 
 
     <!-- ============================================================
-         BRACCIO DESTRO
-         Stessa logica: ruotato di π/2 attorno a X per partire
-         orizzontale, ma sul lato destro.
+         RIGHT ARM
+         Same logic: rotated by π/2 around X to start
+         horizontal, but on the right side.
          ============================================================ -->
     <link name="right_arm">
         <visual>
@@ -276,7 +276,7 @@
 
 
     <!-- ============================================================
-         ANTENNA (dettaglio decorativo)
+         ANTENNA (decorative detail)
          ============================================================ -->
     <link name="antenna">
         <visual>

@@ -1,17 +1,17 @@
 """
-r2d2_walker.launch.py - Avvia R2D2 che CAMMINA in cerchio
+r2d2_walker.launch.py - Starts R2D2 WALKING in a circle
 ===========================================================
 
-Differenza rispetto a r2d2_dancer.launch.py:
-- Aggiunge base_mover, un nodo che pubblica la TF world → base_link
-- Usa un file RViz con Fixed Frame = "world"
-- R2D2 si sposta nello spazio (non balla sul posto)
+Difference from r2d2_dancer.launch.py:
+- Adds base_mover, a node that publishes the TF world → base_link
+- Uses an RViz file with Fixed Frame = "world"
+- R2D2 moves in space (does not dance in place)
 
-COME USARLO:
+HOW TO USE:
   ros2 launch r2d2_dancer r2d2_walker.launch.py
 
-In RViz vedrai R2D2 percorrere un cerchio mentre balla.
-La griglia rimane fissa (ancorata a world) e il robot si muove.
+In RViz you will see R2D2 travel in a circle while dancing.
+The grid stays fixed (anchored to world) and the robot moves.
 """
 
 import os
@@ -29,7 +29,7 @@ def generate_launch_description():
     with open(urdf_path, 'r') as f:
         robot_description = f.read()
 
-    # ─── 1. state_publisher (le gambe ballano) ──────────────
+    # ─── 1. state_publisher (legs dance) ──────────────
     state_pub = Node(
         package='r2d2_dancer',
         executable='state_publisher',
@@ -37,7 +37,7 @@ def generate_launch_description():
         output='screen',
     )
 
-    # ─── 2. base_mover (il corpo si sposta) ────────────────
+    # ─── 2. base_mover (body moves) ────────────────
     base_mover = Node(
         package='r2d2_dancer',
         executable='base_mover',
@@ -56,7 +56,7 @@ def generate_launch_description():
         }],
     )
 
-    # ─── 4. RViz con config per walker ──────────────────────
+    # ─── 4. RViz with config for walker ──────────────────────
     rviz_config = os.path.join(pkg_dir, 'rviz', 'r2d2_walker.rviz')
     rviz = ExecuteProcess(
         cmd=['rviz2', '-d', rviz_config],
