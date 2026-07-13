@@ -10,11 +10,11 @@ Scritto per chi inizia da zero: ogni file è pieno di commenti in italiano che s
 
 ### Ballo sul posto
 
-https://github.com/PedoneMatteo/R2D2_Dancer/blob/main/video/r2d2_dancer_nomoving.mp4
+![Ballo sul posto](video/r2d2_dancer_nomoving.gif)
 
 ### Camminata in cerchio
 
-https://github.com/PedoneMatteo/R2D2_Dancer/blob/main/video/r2d2_dancer_moving.mp4
+![Camminata in cerchio](video/r2d2_dancer_moving.gif)
 
 > Per registrare i tuoi video: leggi [video/README.md](video/README.md)
 
