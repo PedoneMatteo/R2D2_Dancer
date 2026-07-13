@@ -34,7 +34,7 @@ Written for absolute beginners: every file is full of English comments explainin
 
 ## Prerequisites
 
-- **ROS2 Humble** (or newer) installed. [Official guide](https://docs.ros.org/en/humble/Installation.html)
+- **ROS2 Humble** (or newer) installed. [Official guide](https://docs.ros.org/en/humble/index.html)
 - **RViz2** (included in the ROS2 desktop installation)
 - **colcon** to build the workspace
 
@@ -52,7 +52,7 @@ ros2 --version
 cd ~/ros2_ws/src
 
 # 2. Clone the repository
-git clone https://github.com/TUO-UTENTE/r2d2_dancer.git
+git clone https://github.com/PedoneMatteo/R2D2_Dancer.git
 
 # 3. Go back to the workspace root and build
 cd ~/ros2_ws
